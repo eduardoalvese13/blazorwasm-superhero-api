@@ -1,0 +1,52 @@
+form {
+    display: grid;
+    gap: .5rem;
+    max-width: 28rem;
+    margin-bottom: 1.5rem;
+}
+
+input, button {
+    font: inherit;
+    padding: .55rem .75rem;
+    border: 1px solid #757575;
+    border-radius: .35rem;
+}
+
+button {
+    justify-self: start;
+    background: #174b87;
+    color: white;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .65;
+    cursor: wait;
+}
+
+.results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 1rem;
+}
+
+article {
+    border: 1px solid #d6dce4;
+    border-radius: .5rem;
+    overflow: hidden;
+}
+
+img {
+    width: 100%;
+    height: 16rem;
+    object-fit: cover;
+    object-position: top;
+}
+
+.details {
+    padding: 1rem;
+}
+
+h2, h3 {
+    margin-top: 0;
+}

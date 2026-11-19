@@ -1,0 +1,105 @@
+@page "/"
+@using BlazorWasmSuperHeroApi.Models
+@inject HttpClient Http
+
+<PageTitle>Busca de super-heróis</PageTitle>
+
+<h1>Busca de super-heróis</h1>
+<p>Pesquise heróis e vilões pelo nome usando a SuperHero API.</p>
+
+<form @onsubmit="SearchHeroes" @onsubmit:preventDefault>
+    <label for="access-token">Token da SuperHero API</label>
+    <input id="access-token" type="password" @bind="accessToken" @bind:event="oninput" required autocomplete="off" />
+
+    <label for="hero-name">Nome do personagem</label>
+    <input id="hero-name" placeholder="Exemplo: Batman" @bind="searchTerm" @bind:event="oninput" required />
+
+    <button type="submit" disabled="@isLoading">Pesquisar</button>
+</form>
+
+@if (isLoading)
+{
+    <p role="status">Pesquisando…</p>
+}
+else if (errorMessage is not null)
+{
+    <p role="alert">@errorMessage</p>
+}
+else if (heroes is { Count: 0 })
+{
+    <p role="status">Nenhum personagem encontrado para “@submittedTerm”.</p>
+}
+else if (heroes is not null)
+{
+    <section class="results" aria-label="Resultados da busca">
+        @foreach (var hero in heroes)
+        {
+            <article @key="hero.Id">
+                @if (hero.Image?.Url is { Length: > 0 } imageUrl)
+                {
+                    <img src="@imageUrl" alt="@hero.Name" loading="lazy" />
+                }
+                <div class="details">
+                    <h2>@hero.Name</h2>
+                    <p>@hero.Biography?.FullName</p>
+                    <p><strong>Editora:</strong> @hero.Biography?.Publisher</p>
+                    <h3>Atributos</h3>
+                    <ul>
+                        <li>Inteligência: @Stat(hero.Powerstats?.Intelligence)</li>
+                        <li>Força: @Stat(hero.Powerstats?.Strength)</li>
+                        <li>Velocidade: @Stat(hero.Powerstats?.Speed)</li>
+                        <li>Durabilidade: @Stat(hero.Powerstats?.Durability)</li>
+                        <li>Poder: @Stat(hero.Powerstats?.Power)</li>
+                        <li>Combate: @Stat(hero.Powerstats?.Combat)</li>
+                    </ul>
+                    <p><strong>Primeira aparição:</strong> @hero.Biography?.FirstAppearance</p>
+                </div>
+            </article>
+        }
+    </section>
+}
+
+@code {
+    private string accessToken = "";
+    private string searchTerm = "";
+    private string submittedTerm = "";
+    private bool isLoading;
+    private string? errorMessage;
+    private List<SuperHero>? heroes;
+
+    private async Task SearchHeroes()
+    {
+        if (isLoading || string.IsNullOrWhiteSpace(accessToken) || string.IsNullOrWhiteSpace(searchTerm))
+            return;
+
+        isLoading = true;
+        submittedTerm = searchTerm.Trim();
+        errorMessage = null;
+        heroes = null;
+
+        try
+        {
+            var token = Uri.EscapeDataString(accessToken.Trim());
+            var name = Uri.EscapeDataString(submittedTerm);
+            var url = $"https://www.superheroapi.com/api.php/{token}/search/{name}";
+            var result = await Http.GetFromJsonAsync(url, SuperHeroJsonContext.Default.SuperHeroResponse);
+
+            if (result?.Response == "success")
+                heroes = result.Results ?? [];
+            else if (result?.Error?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true)
+                heroes = [];
+            else
+                errorMessage = "A SuperHero API recusou a busca. Confira o token e tente novamente.";
+        }
+        catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or OperationCanceledException)
+        {
+            errorMessage = "Não foi possível consultar a SuperHero API. Confira a conexão e tente novamente.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private static string Stat(string? value) => string.IsNullOrWhiteSpace(value) || value == "null" ? "—" : value;
+}
